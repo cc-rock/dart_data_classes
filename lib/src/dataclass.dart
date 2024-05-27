@@ -6,7 +6,7 @@ import 'package:collection/collection.dart';
 import 'package:macros/macros.dart';
 
 final _dartCore = Uri.parse('dart:core');
-final _dataClass = Uri.parse('package:dart_data_classes/dart_data_classes.dart');
+final _dataClass = Uri.parse('package:dart_data_classes/src/dataclass.dart');
 
 extension _IsExactly on TypeDeclaration {
   /// Cheaper than checking types using a [StaticType].
@@ -131,13 +131,14 @@ macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
     List<FieldDeclaration> superFields,
   ) async {
     builder.declareInType(DeclarationCode.fromParts([
+      '  ',
       clazz.identifier.name,
-      '({',
+      '({\n',
       for (final field in superFields)
         ...(await _getConstructorDeclarationPartsForField(builder, field)),
       for (final field in fields)
         ...(await _getConstructorDeclarationPartsForField(builder, field)),
-      '});'
+      '  });'
     ]));
   }
 
@@ -147,9 +148,9 @@ macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
     Identifier override,
   ) async {
     builder.declareInType(DeclarationCode.fromParts([
-      '@',
+      '\n  @',
       override,
-      '\n',
+      '\n  ',
       await builder.resolveIdentifier(_dartCore, 'bool'),
       ' operator ==(',
       await builder.resolveIdentifier(_dartCore, 'dynamic'),
@@ -163,11 +164,11 @@ macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
     Identifier override,
   ) async {
     builder.declareInType(DeclarationCode.fromParts([
-      '@',
+      '\n  @',
       override,
-      '\n',
+      '\n  ',
       await builder.resolveIdentifier(_dartCore, 'int'),
-      ' get hashCode;',
+      ' get hashCode;\n',
     ]));
   }
 
@@ -184,6 +185,7 @@ macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
     }
     final isRequired = !(field.type.isNullable || defaultValue != null);
     return [
+      '    ',
       if (isRequired) 'required ',
       field.type.code,
       ' ',
@@ -192,7 +194,7 @@ macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
         ' = ',
         defaultValue,
       ],
-      ', '
+      ',\n',
     ];
   }
 
@@ -257,22 +259,24 @@ macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
     final identical = await builder.resolveIdentifier(_dartCore, 'identical');
     final methodBuilder = await builder.buildMethod(equals.identifier);
     final methodBody = FunctionBodyCode.fromParts([
-      '{ return ',
+      '{\n',
+      '    return ',
       identical,
       '(this, other) || (\n'
-      'other.runtimeType == runtimeType && other is ',
+      '      other.runtimeType == runtimeType\n',
+      '      && other is ',
       clazz.identifier.name,
       '\n',
-      if (hasSuper) '&& super == other\n',
+      if (hasSuper) '      && super == other\n',
       for (final field in fields) ..._getEqualsPartsForField(field, builder, identical),
-      ');}'
+      '    );\n  }\n',
     ]);
     methodBuilder.augment(methodBody);
   }
 
   List<Object> _getEqualsPartsForField(FieldDeclaration field, TypeDefinitionBuilder builder, Identifier identical,) {
     return [
-      '&& (',
+      '      && (',
       identical,
       '(',
       field.identifier.name,
@@ -301,30 +305,24 @@ macro class DataClass implements ClassDeclarationsMacro, ClassDefinitionMacro {
               target: clazz.asDiagnosticTarget),
           Severity.error));
     }
+    final methodBuilder = await builder.buildMethod(hashCode.identifier);
     final toBeHashed = [
       if (hasSuper) 'super.hashCode',
       for (final field in fields) field.identifier.name,
     ];
     final toBeHashedParts = [
       for (final name in toBeHashed) ...[
-        name, ', \n'
+        '      ', name, ',\n'
       ]
     ];
     final objIdentifier = await builder.resolveIdentifier(_dartCore, 'Object');
-    var prefix = '.hash(';
-    var suffix = ');\n';
-    if (toBeHashed.length > 20) {
-      prefix = '.hashAll([';
-      suffix = ');\n';
-    }
-    final methodBuilder = await builder.buildMethod(hashCode.identifier);
     final methodBody = FunctionBodyCode.fromParts([
-      '{ return ',
+      '{\n',
+      '    return ',
       objIdentifier,
-      prefix,
+      '.hashAll([\n',
       ...toBeHashedParts,
-      suffix,
-      '}',
+      '    ]);\n  }',
     ]);
     methodBuilder.augment(methodBody);
   }

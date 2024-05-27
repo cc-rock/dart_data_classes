@@ -1,4 +1,4 @@
-import 'package:json/dart_data_classes.dart';
+import 'package:dart_data_classes/dart_data_classes.dart';
 
 @DataClass()
 class Person {
