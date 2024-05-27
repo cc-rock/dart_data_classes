@@ -1,4 +1,4 @@
-name: json
+name: dart_data_classes
 description: An attempt at implementing data classes for Dart using the macros feature.
 version: 0.1.0
 
