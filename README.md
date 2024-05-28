@@ -29,6 +29,7 @@ dependencies:
 ```
 5. If using VSCode, in order to enjoy the great IDE support for macros, unfortunately you'll need the project containing the macros (this one), to be opened in the IDE together with the one in which the macros are used.. this is because of some current limitation of the macro system and the analysis server, see https://github.com/dart-lang/sdk/issues/55688 and https://github.com/dart-lang/sdk/issues/55670.
 The easiest way to achieve this is to clone this repo locally and create a common folder in which you place both this project and your project, and then open that parent folder with VSCode.
+5. When building or running your project, pass the `--enable-experiment macros` option to `dart run` / `dart compile` or `flutter run` / `flutter build`.
 
 ## Usage example
 ```dart
