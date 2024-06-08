@@ -5,7 +5,6 @@ import 'package:dart_data_classes/src/common.dart';
 import 'package:macros/macros.dart';
 
 mixin EqualityImpl {
-
   FutureOr<void> declareEquals(
     ClassDeclaration clazz,
     MemberDeclarationBuilder builder,
@@ -36,7 +35,7 @@ mixin EqualityImpl {
     ]));
   }
 
-    FutureOr<void> buildEquals(
+  FutureOr<void> buildEquals(
     ClassDeclaration clazz,
     List<FieldDeclaration> fields,
     TypeDefinitionBuilder builder, {
@@ -58,18 +57,23 @@ mixin EqualityImpl {
       '    return ',
       identical,
       '(this, other) || (\n'
-      '      other.runtimeType == runtimeType\n',
+          '      other.runtimeType == runtimeType\n',
       '      && other is ',
       clazz.identifier.name,
       '\n',
       if (hasSuper) '      && super == other\n',
-      for (final field in fields) ..._getEqualsPartsForField(field, builder, identical),
+      for (final field in fields)
+        ..._getEqualsPartsForField(field, builder, identical),
       '    );\n  }\n',
     ]);
     methodBuilder.augment(methodBody);
   }
 
-  List<Object> _getEqualsPartsForField(FieldDeclaration field, TypeDefinitionBuilder builder, Identifier identical,) {
+  List<Object> _getEqualsPartsForField(
+    FieldDeclaration field,
+    TypeDefinitionBuilder builder,
+    Identifier identical,
+  ) {
     return [
       '      && (',
       identical,
@@ -92,7 +96,8 @@ mixin EqualityImpl {
     required bool hasSuper,
   }) async {
     final methods = await builder.methodsOf(clazz);
-    final hashCode = methods.firstWhereOrNull((m) => m.identifier.name == 'hashCode');
+    final hashCode =
+        methods.firstWhereOrNull((m) => m.identifier.name == 'hashCode');
     if (hashCode == null) {
       throw DiagnosticException(Diagnostic(
           DiagnosticMessage(
@@ -106,11 +111,10 @@ mixin EqualityImpl {
       for (final field in fields) field.identifier.name,
     ];
     final toBeHashedParts = [
-      for (final name in toBeHashed) ...[
-        '      ', name, ',\n'
-      ]
+      for (final name in toBeHashed) ...['      ', name, ',\n']
     ];
-    final objIdentifier = await builder.resolveIdentifier(dartCoreUri, 'Object');
+    final objIdentifier =
+        await builder.resolveIdentifier(dartCoreUri, 'Object');
     final methodBody = FunctionBodyCode.fromParts([
       '{\n',
       '    return ',

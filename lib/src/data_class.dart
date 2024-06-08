@@ -13,7 +13,9 @@ class DefaultValue<T> {
   final T value;
 }
 
-macro class DataClass with EqualityImpl implements ClassDeclarationsMacro, ClassDefinitionMacro {
+macro class DataClass
+    with EqualityImpl
+    implements ClassDeclarationsMacro, ClassDefinitionMacro {
   const DataClass();
 
   @override
@@ -22,8 +24,8 @@ macro class DataClass with EqualityImpl implements ClassDeclarationsMacro, Class
     MemberDeclarationBuilder builder,
   ) async {
     await _checkNoUnnamedConstructor(clazz, builder);
-    final superclasses = await getSuperClasses(clazz, builder);
-    final superFields = await getOrderedSuperFields(superclasses, builder);
+    final superClasses = await getSuperClasses(clazz, builder);
+    final superFields = await getOrderedSuperFields(superClasses, builder);
     final fields = await builder.fieldsOf(clazz);
     final override = await builder.resolveIdentifier(dartCoreUri, 'override');
     await _declareConstructor(clazz, builder, fields, superFields);
@@ -36,12 +38,12 @@ macro class DataClass with EqualityImpl implements ClassDeclarationsMacro, Class
     ClassDeclaration clazz,
     TypeDefinitionBuilder builder,
   ) async {
-    final superclasses = await getSuperClasses(clazz, builder);
-    final superFields = await getOrderedSuperFields(superclasses, builder);
+    final superClasses = await getSuperClasses(clazz, builder);
     final fields = await builder.fieldsOf(clazz);
-    await _buildConstructor(clazz, builder, fields, superFields);
-    await buildEquals(clazz, fields, builder, hasSuper: superclasses.isNotEmpty);
-    await buildHashCode(clazz, fields, builder, hasSuper: superclasses.isNotEmpty);
+    await buildEquals(clazz, fields, builder,
+        hasSuper: superClasses.isNotEmpty);
+    await buildHashCode(clazz, fields, builder,
+        hasSuper: superClasses.isNotEmpty);
   }
 
   FutureOr<void> _checkNoUnnamedConstructor(
@@ -78,7 +80,28 @@ macro class DataClass with EqualityImpl implements ClassDeclarationsMacro, Class
         ...(await _getConstructorDeclarationPartsForField(builder, field)),
       for (final field in fields)
         ...(await _getConstructorDeclarationPartsForField(builder, field)),
-      '  });'
+      '  }): ',
+      ...fields.mapIndexed((index, field) {
+        return RawCode.fromParts([
+          if (index != 0) ',\n      ',
+          'this.',
+          field.identifier.name,
+          ' = ',
+          field.identifier.name,
+        ]);
+      }),
+      if (superFields.isNotEmpty) ...[
+        ',\n      super(\n      ',
+        for (final field in superFields) ...[
+          '  ',
+          field.identifier.name,
+          ': ',
+          field.identifier.name,
+          ',\n      '
+        ],
+        ')',
+      ],
+      ';',
     ]));
   }
 
@@ -107,50 +130,6 @@ macro class DataClass with EqualityImpl implements ClassDeclarationsMacro, Class
       ',\n',
     ];
   }
-
-  FutureOr<void> _buildConstructor(
-    ClassDeclaration clazz,
-    TypeDefinitionBuilder builder,
-    List<FieldDeclaration> fields,
-    List<FieldDeclaration> superFields,
-  ) async {
-    final constructors = await builder.constructorsOf(clazz);
-    final unnamed = constructors.firstWhereOrNull((c) => c.identifier.name == '');
-    if (unnamed == null) {
-      throw DiagnosticException(Diagnostic(
-          DiagnosticMessage(
-              'DataClass internal error, constructor not found in definition phase',
-              target: clazz.asDiagnosticTarget),
-          Severity.error));
-    }
-    final constructorBuilder = await builder.buildConstructor(
-      unnamed.identifier,
-    );
-    final fieldInitializers = fields.map((field) {
-      return RawCode.fromParts([
-        'this.',
-        field.identifier.name,
-        ' = ',
-        field.identifier.name,
-      ]);
-    });
-    final superInitialzer = RawCode.fromParts([
-      'super(',
-      for (final field in superFields) ...[
-        field.identifier.name,
-        ': ',
-        field.identifier.name,
-        ', '
-      ],
-      ')'
-    ]);
-
-    constructorBuilder.augment(initializers: [
-      ...fieldInitializers,
-      superInitialzer,
-    ]);
-  }
-
 }
 
 /*
