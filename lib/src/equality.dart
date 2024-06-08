@@ -47,7 +47,7 @@ mixin EqualityImpl {
     if (equals == null) {
       throw DiagnosticException(Diagnostic(
           DiagnosticMessage(
-              'DataClass internal error, == not found in defining phase',
+              'DataClass internal error, == not found in definition phase',
               target: clazz.asDiagnosticTarget),
           Severity.error));
     }
@@ -96,7 +96,7 @@ mixin EqualityImpl {
     if (hashCode == null) {
       throw DiagnosticException(Diagnostic(
           DiagnosticMessage(
-              'DataClass internal error, hashCode not found in defining phase',
+              'DataClass internal error, hashCode not found in definition phase',
               target: clazz.asDiagnosticTarget),
           Severity.error));
     }

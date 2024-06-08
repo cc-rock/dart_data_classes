@@ -119,7 +119,7 @@ macro class DataClass with EqualityImpl implements ClassDeclarationsMacro, Class
     if (unnamed == null) {
       throw DiagnosticException(Diagnostic(
           DiagnosticMessage(
-              'DataClass internal error, constructor not found in defining phase',
+              'DataClass internal error, constructor not found in definition phase',
               target: clazz.asDiagnosticTarget),
           Severity.error));
     }
@@ -156,7 +156,12 @@ macro class DataClass with EqualityImpl implements ClassDeclarationsMacro, Class
 /*
 
  - Liste / mappe / set immutabili
+
+ - deep equals
+
  - copyWith
+   - per data class, tutti i fields tranne i super init
+   - per generica class, tutti i parametri del costruttore che hanno un field o super field (gli altri saranno required?)
 
  - generics
 
