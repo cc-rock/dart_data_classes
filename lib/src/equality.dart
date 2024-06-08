@@ -14,9 +14,9 @@ mixin EqualityImpl {
       '\n  @',
       override,
       '\n  ',
-      await builder.resolveIdentifier(dartCoreUri, 'bool'),
+      await builder.resolveIdentifierWrapper(dartCoreUri, 'bool'),
       ' operator ==(',
-      await builder.resolveIdentifier(dartCoreUri, 'dynamic'),
+      await builder.resolveIdentifierWrapper(dartCoreUri, 'dynamic'),
       ' other);'
     ]));
   }
@@ -30,7 +30,7 @@ mixin EqualityImpl {
       '\n  @',
       override,
       '\n  ',
-      await builder.resolveIdentifier(dartCoreUri, 'int'),
+      await builder.resolveIdentifierWrapper(dartCoreUri, 'int'),
       ' get hashCode;\n',
     ]));
   }
@@ -50,7 +50,8 @@ mixin EqualityImpl {
               target: clazz.asDiagnosticTarget),
           Severity.error));
     }
-    final identical = await builder.resolveIdentifier(dartCoreUri, 'identical');
+    final identical =
+        await builder.resolveIdentifierWrapper(dartCoreUri, 'identical');
     final methodBuilder = await builder.buildMethod(equals.identifier);
     final methodBody = FunctionBodyCode.fromParts([
       '{\n',
@@ -114,7 +115,7 @@ mixin EqualityImpl {
       for (final name in toBeHashed) ...['      ', name, ',\n']
     ];
     final objIdentifier =
-        await builder.resolveIdentifier(dartCoreUri, 'Object');
+        await builder.resolveIdentifierWrapper(dartCoreUri, 'Object');
     final methodBody = FunctionBodyCode.fromParts([
       '{\n',
       '    return ',

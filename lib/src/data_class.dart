@@ -25,6 +25,7 @@ macro class DataClass
   ) async {
     await _checkNoUnnamedConstructor(clazz, builder);
     final superClasses = await getSuperClasses(clazz, builder);
+    await checkSuperClasses(clazz, superClasses, builder);
     final superFields = await getOrderedSuperFields(superClasses, builder);
     final fields = await builder.fieldsOf(clazz);
     final override = await builder.resolveIdentifier(dartCoreUri, 'override');
@@ -39,6 +40,7 @@ macro class DataClass
     TypeDefinitionBuilder builder,
   ) async {
     final superClasses = await getSuperClasses(clazz, builder);
+    await checkSuperClasses(clazz, superClasses, builder);
     final fields = await builder.fieldsOf(clazz);
     await buildEquals(clazz, fields, builder,
         hasSuper: superClasses.isNotEmpty);

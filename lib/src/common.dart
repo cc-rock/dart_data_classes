@@ -11,15 +11,37 @@ extension IsExactly on TypeDeclaration {
       identifier.name == name && this.library.uri == library;
 }
 
+extension ResolveIdentifierExtension on DeclarationPhaseIntrospector {
+  /// Temporary wrapper method around resolveIdentifier to avoid deprecation
+  /// reporting until a proper api is available
+  Future<Identifier> resolveIdentifierWrapper(Uri library, String name) {
+    // ignore: deprecated_member_use
+    return resolveIdentifier(library, name);
+  }
+}
+
+/// Gets all superclasses of clazz, in walking-up order
+/// (from the closest to the farthest) and excluding [Object]
 FutureOr<List<ClassDeclaration>> getSuperClasses(
   ClassDeclaration clazz,
   DeclarationPhaseIntrospector builder,
 ) async {
-  final superclasses = <ClassDeclaration>[];
-  await _getSuperClassesRecursively(clazz, clazz, builder, superclasses);
-  return superclasses;
+  final superClasses = <ClassDeclaration>[];
+  var superClass = clazz.superclass;
+  while (superClass != null) {
+    final superClassDecl =
+        await builder.typeDeclarationOf(superClass.identifier);
+    if (superClassDecl.isExactly('Object', dartCoreUri)) {
+      break;
+    }
+    superClasses.add(superClassDecl as ClassDeclaration);
+    superClass = superClassDecl.superclass;
+  }
+  return superClasses;
 }
 
+/// Gets all fields of all superclasses in a single list, in the order they are declared.
+/// The list of superclasses is visited in reverse.
 FutureOr<List<FieldDeclaration>> getOrderedSuperFields(
   List<ClassDeclaration> superclasses,
   DeclarationPhaseIntrospector builder,
@@ -31,39 +53,40 @@ FutureOr<List<FieldDeclaration>> getOrderedSuperFields(
   return superFields;
 }
 
-FutureOr<void> _getSuperClassesRecursively(
+Future<bool> _isDataClass(
   ClassDeclaration clazz,
-  ClassDeclaration originalClass,
   DeclarationPhaseIntrospector builder,
-  List<ClassDeclaration> current,
 ) async {
-  final superclazz = clazz.superclass;
-  if (superclazz != null) {
-    final superDecl = await builder.typeDeclarationOf(superclazz.identifier);
-    if (superDecl.isExactly('Object', dartCoreUri)) {
-      return;
-    }
-    for (final annotation in superDecl.metadata) {
-      if (annotation is ConstructorMetadataAnnotation) {
-        final annotationType = annotation.type;
-        final typeDecl =
-            await builder.typeDeclarationOf(annotationType.identifier);
-        if (typeDecl.isExactly('DataClass', dataClassUri)) {
-          current.add(superDecl as ClassDeclaration);
-          await _getSuperClassesRecursively(
-              superDecl, originalClass, builder, current);
-          return;
-        }
+  for (final annotation in clazz.metadata) {
+    if (annotation is ConstructorMetadataAnnotation) {
+      final annotationType = annotation.type;
+      final typeDecl =
+          await builder.typeDeclarationOf(annotationType.identifier);
+      if (typeDecl.isExactly('DataClass', dataClassUri)) {
+        return true;
       }
     }
-    throw DiagnosticException(
-      Diagnostic(
-        DiagnosticMessage(
-          'A data class can only have data class superclasses',
-          target: originalClass.asDiagnosticTarget,
+  }
+  return false;
+}
+
+FutureOr<void> checkSuperClasses(
+  ClassDeclaration clazz,
+  List<ClassDeclaration> superClasses,
+  DeclarationPhaseIntrospector builder,
+) async {
+  for (final superClass in superClasses) {
+    final isDataClass = await _isDataClass(superClass, builder);
+    if (!isDataClass) {
+      throw DiagnosticException(
+        Diagnostic(
+          DiagnosticMessage(
+            'A data class can only have data class superclasses',
+            target: clazz.asDiagnosticTarget,
+          ),
+          Severity.error,
         ),
-        Severity.error,
-      ),
-    );
+      );
+    }
   }
 }
